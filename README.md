@@ -55,3 +55,4 @@ NTFY_TOPIC=你的topic node check.mjs
 
 - GitHub Actions 的 cron 排程並非絕對精準，尖峰時段（例如整點）可能延遲數分鐘執行，這是 GitHub 平台本身的限制。
 - 目前只監控單一日期（2026/09/21）；若要同時監控多個日期，需要修改腳本邏輯（可以再請 Claude 協助擴充）。
+- 全新建立的 repo，GitHub 內部排程系統第一次認列 schedule 觸發可能需要一段時間（最長約 1 小時），之後才會穩定準時觸發。
