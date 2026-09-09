@@ -1,0 +1,11 @@
+{
+  "name": "takachiho-monitor",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "node check.mjs"
+  },
+  "dependencies": {
+    "playwright": "^1.47.0"
+  }
+}
