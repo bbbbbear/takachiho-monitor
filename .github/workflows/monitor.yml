@@ -1,8 +1,6 @@
 name: Takachiho Gorge boat monitor
 
 on:
-  schedule:
-    - cron: "*/5 * * * *"
   workflow_dispatch: {}
 
 permissions:

@@ -5,6 +5,11 @@ https://eipro.jp/takachiho1/eventCalendars/index 上 2026/09/21 的船票時段�
 一旦有時段從「×（已截止）」變成可預約，就透過 [ntfy.sh](https://ntfy.sh) 推播通知你的手機。
 完全免費、全天候運行，不需要你的電腦或任何 session 保持開啟。
 
+**觸發方式**：GitHub Actions 自帶的 `schedule` cron 對低活躍度 repo 常常會延遲數小時才觸發，
+不夠準時，所以改由外部免費排程服務（例如 [cron-job.org](https://cron-job.org)）
+每 5 分鐘呼叫一次 GitHub API 的 `workflow_dispatch`，等同手動按「Run workflow」，
+不受 GitHub 內部 schedule 節流影響。
+
 **這個腳本只會讀取頁面判斷狀態，絕不會自動送出預約表單或輸入任何信用卡/付款資訊。**
 
 ## 設定步驟
@@ -30,8 +35,16 @@ https://eipro.jp/takachiho1/eventCalendars/index 上 2026/09/21 的船票時段�
    - 到 GitHub repo 的 **Settings → Secrets and variables → Actions → New repository secret**，
      新增一個名為 `NTFY_TOPIC`，值填入你訂閱的 topic 名稱。
 
-4. **完成！** 排程會自動每 5 分鐘執行一次（`.github/workflows/monitor.yml`）。
-   也可以到 repo 的 **Actions** 分頁手動點 "Run workflow" 立即測試一次。
+4. **設定外部排程服務，每 5 分鐘觸發一次**：
+   - 建立 GitHub Personal Access Token（Settings → Developer settings → Fine-grained tokens），
+     權限限定在這個 repo，只給 **Actions: Read and write**。
+   - 到 [cron-job.org](https://cron-job.org)（或任何支援自訂 headers 的免費 cron 服務）建立一個
+     每 5 分鐘執行的 job，設定：
+     - Method: `POST`
+     - URL: `https://api.github.com/repos/<你的帳號>/<repo名稱>/actions/workflows/monitor.yml/dispatches`
+     - Headers: `Authorization: Bearer <你的PAT>`、`Accept: application/vnd.github+json`
+     - Body: `{"ref":"main"}`
+   - 也可以隨時到 repo 的 **Actions** 分頁手動點 "Run workflow" 立即測試一次。
 
 ## 本地測試（選用）
 
@@ -45,14 +58,13 @@ NTFY_TOPIC=你的topic node check.mjs
 
 - 每次執行都會把目前開放（非 ×）的時段記錄在 `state.json` 裡，避免同一個時段重複發通知；
   若時段又變回 ×，之後重新開放時會再次通知。
-- `state.json` 每輪都會更新時間戳記並自動 commit 回 repo，這是刻意設計——
-  GitHub 會在 repo 60 天沒有任何 commit 時自動停用排程，這個機制確保 repo 一直「有動靜」，排程不會被停用。
+- `state.json` 每輪都會更新時間戳記並自動 commit 回 repo，方便追蹤最近一次檢查的結果。
 - 若偵測到 `10:30` 時段開放，通知內容會特別標註「快去手動搶」。
 - 若想調整監控日期或特別標註的時段，修改 `.github/workflows/monitor.yml` 裡的
   `TARGET_DATE` / `SPECIAL_SLOT` 環境變數即可。
 
 ## 限制
 
-- GitHub Actions 的 cron 排程並非絕對精準，尖峰時段（例如整點）可能延遲數分鐘執行，這是 GitHub 平台本身的限制。
+- 準時觸發依賴外部排程服務（例如 cron-job.org）持續運作，若該服務停擺或 PAT 過期，就不會再觸發檢查，
+  建議定期確認 repo 的 Actions 分頁有正常執行紀錄。
 - 目前只監控單一日期（2026/09/21）；若要同時監控多個日期，需要修改腳本邏輯（可以再請 Claude 協助擴充）。
-- 全新建立的 repo，GitHub 內部排程系統第一次認列 schedule 觸發可能需要一段時間（最長約 1 小時），之後才會穩定準時觸發。
